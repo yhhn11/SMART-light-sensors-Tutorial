@@ -1,0 +1,21 @@
+# --- PlatformIO specific ---
+# Ignora a pasta de build e bibliotecas locais (serão baixadas pelo químico)
+.pio/
+# Ignora arquivos de compilação específicos
+.prowershell
+.manager
+
+# --- VS Code specific ---
+# Ignora configurações que apontam para caminhos no seu computador pessoal
+.vscode/
+*.code-workspace
+
+# --- OS specific ---
+# Arquivos temporários do Windows e Mac
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Python (se houver scripts extras) ---
+__pycache__/
+*.py[cod]
