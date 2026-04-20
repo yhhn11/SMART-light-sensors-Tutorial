@@ -37,11 +37,8 @@ void setup() {
     // Initialize I2C Bus (A4 = SDA, A5 = SCL)
     Wire.begin();
 
-    /*
-     * SENSOR INITIALIZATION
-     * Parameters: Select one mode from the table above.
-     * Example: BH1750::CONTINUOUS_HIGH_RES_MODE
-     */
+    
+    //SENSOR INITIALIZATION: Parameters: Select one mode from the table above.
     bool status = lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE);
 
     if (status) {
@@ -51,14 +48,12 @@ void setup() {
         while (1); // Halt execution if sensor is not found
     }
 
-    /*
-     * OPTIONAL: SENSITIVITY ADJUSTMENT
-     * Change the value on the line below to change sensitivity (Value range: 31 - 254)
-    */
+
+    //OPTIONAL: SENSITIVITY ADJUSTMENT: Change the value on the line below to change sensitivity (Value range: 31 - 254)
     lightMeter.setMTreg(69); 
 }
 
-void loop() {
+void streamDataContinuously(){
     // Acquire light intensity level in Lux (lx)
     float lux = lightMeter.readLightLevel();
 
@@ -69,4 +64,43 @@ void loop() {
 
     // Sampling interval: 1000 milliseconds (1 second)
     delay(1000);
+}
+
+void captureSingleSample() {
+    // Check if there is any data waiting in the Serial buffer
+    if (Serial.available() > 0) {
+        // Read the incoming character
+        char incomingByte = Serial.read();
+
+        // Trigger the reading if 'y' or 'Y' is pressed
+        if (incomingByte == 'y' || incomingByte == 'Y') {
+            
+            Serial.println(F(">> Initiating sample acquisition..."));
+
+            // Acquire light intensity level in Lux (lx)
+            float lux = lightMeter.readLightLevel();
+
+            // Output data to Serial Monitor
+            Serial.print(F("Illuminance: "));
+            Serial.print(lux);
+            Serial.println(F(" lx"));
+
+            Serial.println(F(">> Capture complete. Waiting for next command."));
+        } 
+        else {
+            // Optional: Handle invalid keys to guide the researcher
+            Serial.println(F("Invalid command. Please press 'y' to capture a sample."));
+        }
+
+        // Clear any remaining characters in the buffer (like line endings)
+        while(Serial.available() > 0) { Serial.read(); }
+    }
+}
+
+void loop() {
+    // Mode A is ACTIVE (no slashes)
+    streamDataContinuously(); 
+
+    // Mode B is INACTIVE (starts with //)
+    // captureSingleSample();   
 }

@@ -56,10 +56,8 @@ void setup() {
       while (1);
   }
 
-  /*
-    * SENSOR CALIBRATION
-    * Set gain, integration time, and measurement mode.
-  */
+  
+  //SENSOR CALIBRATION: Set gain, integration time, and measurement mode.
   as726x.setGain(GAIN_16X);          // High gain for precision
   as726x.setIntegrationTime(50);           // ~140ms exposure
   as726x.setConversionType(MODE_2); // Read all 6 channels continuously
@@ -69,8 +67,8 @@ void setup() {
   // as726x.drvOn();
 }
 
-void loop() {
-  // Check if the sensor has finished a measurement cycle
+void streamDataContinuously(){
+    // Check if the sensor has finished a measurement cycle
   if (as726x.dataReady()) {
       
       // Read calibrated values for all 6 visible channels
@@ -84,7 +82,50 @@ void loop() {
       Serial.print(F(" | O(600nm): ")); Serial.print(sensorValues[AS726x_ORANGE]);
       Serial.print(F(" | R(650nm): ")); Serial.println(sensorValues[AS726x_RED]);
   }
-
   // Sampling interval
   delay(1000);
+}
+
+void captureSingleSample() {
+    // Check if there is any data waiting in the Serial buffer
+    if (Serial.available() > 0) {
+        // Read the incoming character
+        char incomingByte = Serial.read();
+
+        // Trigger the reading if 'y' or 'Y' is pressed
+        if (incomingByte == 'y' || incomingByte == 'Y') {
+            
+            Serial.println(F(">> Initiating sample acquisition..."));
+
+              if (as726x.dataReady()) {
+                // Read calibrated values for all 6 visible channels
+                as726x.readCalibratedValues(sensorValues);
+
+                // Print spectral data labeled by color/wavelength
+                Serial.print(F("V(450nm): ")); Serial.print(sensorValues[AS726x_VIOLET]);
+                Serial.print(F(" | B(500nm): ")); Serial.print(sensorValues[AS726x_BLUE]);
+                Serial.print(F(" | G(550nm): ")); Serial.print(sensorValues[AS726x_GREEN]);
+                Serial.print(F(" | Y(570nm): ")); Serial.print(sensorValues[AS726x_YELLOW]);
+                Serial.print(F(" | O(600nm): ")); Serial.print(sensorValues[AS726x_ORANGE]);
+                Serial.print(F(" | R(650nm): ")); Serial.println(sensorValues[AS726x_RED]);
+              }
+
+            Serial.println(F(">> Capture complete. Waiting for next command."));
+        } 
+        else {
+            // Optional: Handle invalid keys to guide the researcher
+            Serial.println(F("Invalid command. Please press 'y' to capture a sample."));
+        }
+
+        // Clear any remaining characters in the buffer (like line endings)
+        while(Serial.available() > 0) { Serial.read(); }
+    }
+}
+
+void loop() {
+    // Mode A is ACTIVE (no slashes)
+    streamDataContinuously(); 
+
+    // Mode B is INACTIVE (starts with //)
+    // captureSingleSample();   
 }

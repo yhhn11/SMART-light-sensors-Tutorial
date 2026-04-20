@@ -66,7 +66,7 @@ void setup() {
 
 }
 
-void loop() {
+void streamDataContinuously(){
     // Attempt to read data from all channels into the buffer
     if (as7343.readAllChannels(readings)) {
         
@@ -90,4 +90,54 @@ void loop() {
 
     // Standard 1-second sampling delay
     delay(1000);
+}
+
+void captureSingleSample() {
+    // Check if there is any data waiting in the Serial buffer
+    if (Serial.available() > 0) {
+        // Read the incoming character
+        char incomingByte = Serial.read();
+
+        // Trigger the reading if 'y' or 'Y' is pressed
+        if (incomingByte == 'y' || incomingByte == 'Y') {
+            
+            Serial.println(F(">> Initiating sample acquisition..."));
+
+            // Attempt to read data from all channels into the buffer
+            if (as7343.readAllChannels(readings)) {
+
+                // Printing channels in wavelength order as per library documentation
+                Serial.print(F("F1 (405nm violet):     ")); Serial.println(readings[AS7343_CHANNEL_F1]);
+                Serial.print(F("F2 (425nm violet-blue):")); Serial.println(readings[AS7343_CHANNEL_F2]);
+                Serial.print(F("FZ (450nm blue):       ")); Serial.println(readings[AS7343_CHANNEL_FZ]);
+                Serial.print(F("F3 (475nm blue-cyan):  ")); Serial.println(readings[AS7343_CHANNEL_F3]);
+                Serial.print(F("F4 (515nm green):      ")); Serial.println(readings[AS7343_CHANNEL_F4]);
+                Serial.print(F("F5 (550nm green-yel):  ")); Serial.println(readings[AS7343_CHANNEL_F5]);
+                Serial.print(F("FY (555nm yellow-grn): ")); Serial.println(readings[AS7343_CHANNEL_FY]);
+                Serial.print(F("FXL(600nm orange):     ")); Serial.println(readings[AS7343_CHANNEL_FXL]);
+                Serial.print(F("F6 (640nm red):        ")); Serial.println(readings[AS7343_CHANNEL_F6]);
+                Serial.print(F("F7 (690nm deep red):   ")); Serial.println(readings[AS7343_CHANNEL_F7]);
+                Serial.print(F("F8 (745nm near-IR):    ")); Serial.println(readings[AS7343_CHANNEL_F8]);
+                Serial.print(F("NIR(855nm near-IR):    ")); Serial.println(readings[AS7343_CHANNEL_NIR]);
+                Serial.print(F("VIS (clear):           ")); Serial.println(readings[AS7343_CHANNEL_VIS_TL_0]);
+            }
+
+            Serial.println(F(">> Capture complete. Waiting for next command."));
+        } 
+        else {
+            // Optional: Handle invalid keys to guide the researcher
+            Serial.println(F("Invalid command. Please press 'y' to capture a sample."));
+        }
+
+        // Clear any remaining characters in the buffer (like line endings)
+        while(Serial.available() > 0) { Serial.read(); }
+    }
+}
+
+void loop() {
+    // Mode A is ACTIVE (no slashes)
+    streamDataContinuously(); 
+
+    // Mode B is INACTIVE (starts with //)
+    // captureSingleSample();   
 }

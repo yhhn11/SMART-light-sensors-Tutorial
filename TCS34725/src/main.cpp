@@ -43,17 +43,12 @@ void setup() {
         while (1); // Stop execution
     }
 
-    /*
-     * SENSOR CALIBRATION
-     * Adjust these based on the transmittance/reflectance of your sample.
-    */
+    //SENSOR CALIBRATION: Adjust these based on the transmittance/reflectance of your sample.
     tcs.setIntegrationTime(TCS34725_INTEGRATIONTIME_154MS);
     tcs.setGain(TCS34725_GAIN_4X);
-
-    Serial.println(F("Configured: Gain = 4X, Integration Time = 154ms"));
 }
 
-void loop() {
+void streamDataContinuously(){
     uint16_t r, g, b, c, colorTemp, lux;
 
     // Read the raw values from the sensor (Red, Green, Blue, Clear)
@@ -73,4 +68,52 @@ void loop() {
 
     // Wait 1 second between readings
     delay(1000);
+}
+
+void captureSingleSample() {
+    // Check if there is any data waiting in the Serial buffer
+    if (Serial.available() > 0) {
+        // Read the incoming character
+        char incomingByte = Serial.read();
+
+        // Trigger the reading if 'y' or 'Y' is pressed
+        if (incomingByte == 'y' || incomingByte == 'Y') {
+            
+            Serial.println(F(">> Initiating sample acquisition..."));
+
+            uint16_t r, g, b, c, colorTemp, lux;
+
+            // Read the raw values from the sensor (Red, Green, Blue, Clear)
+            tcs.getRawData(&r, &g, &b, &c);
+
+            // Calculate standardized values using Adafruit's internal algorithms
+            colorTemp = tcs.calculateColorTemperature(r, g, b);
+            lux = tcs.calculateLux(r, g, b);
+
+            // Output data to Serial Monitor in a format easy to copy to Excel/CSV
+            Serial.print(F("R: ")); Serial.print(r);
+            Serial.print(F(" G: ")); Serial.print(g);
+            Serial.print(F(" B: ")); Serial.print(b);
+            Serial.print(F(" C: ")); Serial.print(c);
+            Serial.print(F(" | Temp: ")); Serial.print(colorTemp); Serial.print(F("K"));
+            Serial.print(F(" | Lux: ")); Serial.println(lux);
+
+            Serial.println(F(">> Capture complete. Waiting for next command."));
+        } 
+        else {
+            // Optional: Handle invalid keys to guide the researcher
+            Serial.println(F("Invalid command. Please press 'y' to capture a sample."));
+        }
+
+        // Clear any remaining characters in the buffer (like line endings)
+        while(Serial.available() > 0) { Serial.read(); }
+    }
+}
+
+void loop() {
+    // Mode A is ACTIVE (no slashes)
+    streamDataContinuously(); 
+
+    // Mode B is INACTIVE (starts with //)
+    // captureSingleSample();   
 }

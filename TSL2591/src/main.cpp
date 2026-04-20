@@ -44,17 +44,13 @@ void setup() {
         while (1);
     }
 
-    /*
-     * SENSOR CALIBRATION
-     * Based on your light source intensity, select the appropriate Gain and Timing.
-    */
+    
+    //SENSOR CALIBRATION: Based on your light source intensity, select the appropriate Gain and Timing.
     tsl.setGain(TSL2591_GAIN_MED);
     tsl.setTiming(TSL2591_INTEGRATIONTIME_100MS);
-
-    Serial.println(F("Configured: Gain = Medium (25x), Time = 100ms"));
 }
 
-void loop() {
+void streamDataContinuously(){
     // Simple reading: returns 32-bit combined value (Full Spectrum | Infrared)
     uint32_t lum = tsl.getFullLuminosity();
     uint16_t ir = lum >> 16;      // Extract Infrared
@@ -74,4 +70,52 @@ void loop() {
 
     // Sampling interval (must be >= selected Integration Time)
     delay(1000);
+}
+
+void captureSingleSample() {
+    // Check if there is any data waiting in the Serial buffer
+    if (Serial.available() > 0) {
+        // Read the incoming character
+        char incomingByte = Serial.read();
+
+        // Trigger the reading if 'y' or 'Y' is pressed
+        if (incomingByte == 'y' || incomingByte == 'Y') {
+            
+            Serial.println(F(">> Initiating sample acquisition..."));
+
+            // Simple reading: returns 32-bit combined value (Full Spectrum | Infrared)
+            uint32_t lum = tsl.getFullLuminosity();
+            uint16_t ir = lum >> 16;      // Extract Infrared
+            uint16_t full = lum & 0xFFFF; // Extract Full Spectrum (Visible + IR)
+            
+            // Calculate visible light by subtracting IR from Full Spectrum
+            uint16_t visible = full - ir;
+
+            // Calculate Lux (Standardized Illuminance)
+            float lux = tsl.calculateLux(full, ir);
+
+            // Output data to Serial Monitor
+            Serial.print(F("Full: "));    Serial.print(full);
+            Serial.print(F(" | IR: "));   Serial.print(ir);
+            Serial.print(F(" | Visible: ")); Serial.print(visible);
+            Serial.print(F(" | LUX: "));  Serial.println(lux);
+
+            Serial.println(F(">> Capture complete. Waiting for next command."));
+        } 
+        else {
+            // Optional: Handle invalid keys to guide the researcher
+            Serial.println(F("Invalid command. Please press 'y' to capture a sample."));
+        }
+
+        // Clear any remaining characters in the buffer (like line endings)
+        while(Serial.available() > 0) { Serial.read(); }
+    }
+}
+
+void loop() {
+    // Mode A is ACTIVE (no slashes)
+    streamDataContinuously(); 
+
+    // Mode B is INACTIVE (starts with //)
+    // captureSingleSample();   
 }

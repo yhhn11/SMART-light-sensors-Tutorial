@@ -55,16 +55,13 @@ void setup() {
         while (1); // Halt execution
     }
 
-    /*
-     * SENSOR CALIBRATION
-     * Adjust these parameters based on your experiment's light intensity.
-    */
+    //SENSOR CALIBRATION: Adjust these parameters based on your experiment's light intensity.
     ltr.setGain(LTR3XX_GAIN_1);
     ltr.setIntegrationTime(LTR3XX_INTEGTIME_100);
     ltr.setMeasurementRate(LTR3XX_MEASRATE_500);
 }
 
-void loop() {
+void streamDataContinuously(){
     uint16_t visible_plus_ir, infrared;
 
     // Check if new data is available for reading
@@ -81,7 +78,54 @@ void loop() {
             Serial.print(F(" | Est. Visible: ")); Serial.println(visible_only);
         }
     }
+    //Sampling Interval
+    delay(1000);
+}
 
-    // Sampling delay (matches or exceeds the measurement rate)
-    delay(500);
+void captureSingleSample() {
+    // Check if there is any data waiting in the Serial buffer
+    if (Serial.available() > 0) {
+        // Read the incoming character
+        char incomingByte = Serial.read();
+
+        // Trigger the reading if 'y' or 'Y' is pressed
+        if (incomingByte == 'y' || incomingByte == 'Y') {
+            
+            Serial.println(F(">> Initiating sample acquisition..."));
+
+            uint16_t visible_plus_ir, infrared;
+
+            // Check if new data is available for reading
+            if (ltr.newDataAvailable()) {
+                // Read both channels (Channel 0: Visible+IR, Channel 1: IR only)
+                if (ltr.readBothChannels(visible_plus_ir, infrared)) {
+                    
+                    // Calculate an estimate of Visible Light
+                    int visible_only = visible_plus_ir - infrared;
+
+                    // Output raw data to Serial Monitor
+                    Serial.print(F("CH0 (Vis+IR): ")); Serial.print(visible_plus_ir);
+                    Serial.print(F(" | CH1 (IR): "));    Serial.print(infrared);
+                    Serial.print(F(" | Est. Visible: ")); Serial.println(visible_only);
+                }
+            }
+
+            Serial.println(F(">> Capture complete. Waiting for next command."));
+        } 
+        else {
+            // Optional: Handle invalid keys to guide the researcher
+            Serial.println(F("Invalid command. Please press 'y' to capture a sample."));
+        }
+
+        // Clear any remaining characters in the buffer (like line endings)
+        while(Serial.available() > 0) { Serial.read(); }
+    }
+}
+
+void loop() {
+    // Mode A is ACTIVE (no slashes)
+    streamDataContinuously(); 
+
+    // Mode B is INACTIVE (starts with //)
+    // captureSingleSample();   
 }

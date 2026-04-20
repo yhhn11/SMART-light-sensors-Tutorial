@@ -62,7 +62,7 @@ void setup() {
   // as7341.enableLED(true);  // Turn ON the internal white LED
 }
 
-void loop() {
+void streamDataContinuously(){
   // Read data from all channels simultaneously
   if (as7341.readAllChannels()) {
       
@@ -81,4 +81,50 @@ void loop() {
 
   // Sampling interval
   delay(1000);
+}
+
+void captureSingleSample() {
+    // Check if there is any data waiting in the Serial buffer
+    if (Serial.available() > 0) {
+        // Read the incoming character
+        char incomingByte = Serial.read();
+
+        // Trigger the reading if 'y' or 'Y' is pressed
+        if (incomingByte == 'y' || incomingByte == 'Y') {
+            
+            Serial.println(F(">> Initiating sample acquisition..."));
+
+            // Read data from all channels simultaneously
+            if (as7341.readAllChannels()) {
+                
+              // Output spectral data labeled by their respective center wavelengths
+              Serial.print(F("F1(415nm): ")); Serial.print(as7341.getChannel(AS7341_CHANNEL_415nm_F1));
+              Serial.print(F(" | F2(445nm): ")); Serial.print(as7341.getChannel(AS7341_CHANNEL_445nm_F2));
+              Serial.print(F(" | F3(480nm): ")); Serial.print(as7341.getChannel(AS7341_CHANNEL_480nm_F3));
+              Serial.print(F(" | F4(515nm): ")); Serial.print(as7341.getChannel(AS7341_CHANNEL_515nm_F4));
+              Serial.print(F(" | F5(555nm): ")); Serial.print(as7341.getChannel(AS7341_CHANNEL_555nm_F5));
+              Serial.print(F(" | F6(590nm): ")); Serial.print(as7341.getChannel(AS7341_CHANNEL_590nm_F6));
+              Serial.print(F(" | F7(630nm): ")); Serial.print(as7341.getChannel(AS7341_CHANNEL_630nm_F7));
+              Serial.print(F(" | F8(680nm): ")); Serial.print(as7341.getChannel(AS7341_CHANNEL_680nm_F8));
+              Serial.print(F(" | NIR: "));       Serial.print(as7341.getChannel(AS7341_CHANNEL_NIR));
+              Serial.print(F(" | Clear: "));     Serial.println(as7341.getChannel(AS7341_CHANNEL_CLEAR));
+            }
+            Serial.println(F(">> Capture complete. Waiting for next command."));
+        } 
+        else {
+            // Optional: Handle invalid keys to guide the researcher
+            Serial.println(F("Invalid command. Please press 'y' to capture a sample."));
+        }
+
+        // Clear any remaining characters in the buffer (like line endings)
+        while(Serial.available() > 0) { Serial.read(); }
+    }
+}
+
+void loop() {
+    // Mode A is ACTIVE (no slashes)
+    streamDataContinuously(); 
+
+    // Mode B is INACTIVE (starts with //)
+    // captureSingleSample();   
 }
